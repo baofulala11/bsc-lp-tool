@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Search, AlertCircle, ExternalLink, Activity, ShieldCheck, Zap, TrendingUp, Calculator, Wallet } from 'lucide-react';
+import { Loader2, Search, AlertCircle, ExternalLink, Activity, ShieldCheck, Zap, TrendingUp, Calculator, Wallet, HelpCircle } from 'lucide-react';
 
 interface PoolData {
   address: string;
@@ -45,7 +45,6 @@ export default function LiquidityAnalyzer() {
   const [searched, setSearched] = useState(false);
   
   // LP ID 查询状态
-  const [lpId, setLpId] = useState('');
   const [lpResult, setLpResult] = useState<any>(null);
   const [lpLoading, setLpLoading] = useState(false);
   const [lpError, setLpError] = useState('');
@@ -141,7 +140,7 @@ export default function LiquidityAnalyzer() {
             <Search className="absolute left-4 top-4 h-6 w-6 text-black transition-colors" />
             <input
               type="text"
-              placeholder="输入代币合约地址 (例如 0x...) 或 LP Token ID (数字)"
+              placeholder="输入代币合约地址 (0x...) 或 LP Token ID (数字)"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
@@ -184,14 +183,14 @@ export default function LiquidityAnalyzer() {
                 <h3 className="text-sm font-black uppercase text-gray-500 mb-2">价格区间 (Price Range)</h3>
                 <div className="space-y-2">
                   <div className="flex justify-between items-end">
-                    <span className="font-bold text-gray-600">Min Price:</span>
+                    <span className="font-bold text-gray-600">最低价 (Min):</span>
                     <span className="font-mono text-xl font-black text-black">{formatPrice(lpResult.minPrice)}</span>
                   </div>
                   <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div className="h-full bg-blue-500 w-full animate-pulse" />
                   </div>
                   <div className="flex justify-between items-end">
-                    <span className="font-bold text-gray-600">Max Price:</span>
+                    <span className="font-bold text-gray-600">最高价 (Max):</span>
                     <span className="font-mono text-xl font-black text-black">{formatPrice(lpResult.maxPrice)}</span>
                   </div>
                 </div>
@@ -345,29 +344,18 @@ export default function LiquidityAnalyzer() {
                     <div className="text-gray-500 italic bg-gray-100 p-4 border-2 border-gray-300">无法获取价格，暂无参考数据</div>
                   )}
                   
-                  {/* 替换"聪哥说" 为技术说明 */}
+                  {/* 替换"聪哥说" 为如何查找 ID 的指南 */}
                   <div className="mt-4 bg-white p-4 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                     <div className="flex items-center gap-2 mb-2 border-b-2 border-black pb-1">
-                      <Calculator className="w-4 h-4" />
-                      <h5 className="font-black text-black text-sm uppercase">区间计算公式 (Calculation)</h5>
+                      <HelpCircle className="w-4 h-4" />
+                      <h5 className="font-black text-black text-sm uppercase">如何查询鲸鱼头寸? (Find Whales)</h5>
                     </div>
-                    <ul className="text-xs text-black space-y-1 font-mono">
-                      <li className="flex justify-between items-center">
-                        <span className="text-gray-600">当前 Tick (预估):</span>
-                        <span className="font-bold bg-gray-100 px-1">{pool.priceUsd ? Math.floor(Math.log(pool.priceUsd) / Math.log(1.0001)) : 'N/A'}</span>
-                      </li>
-                      <li className="flex justify-between">
-                        <span className="text-gray-600">Min Price:</span>
-                        <span>1.0001 ^ (Tick - Range)</span>
-                      </li>
-                      <li className="flex justify-between">
-                        <span className="text-gray-600">Max Price:</span>
-                        <span>1.0001 ^ (Tick + Range)</span>
-                      </li>
-                    </ul>
-                    <div className="mt-2 text-[10px] text-gray-500 italic pt-1">
-                      * 数据基于当前价格模拟。要查询具体头寸，请在上方输入 Token ID。
-                    </div>
+                    <ol className="text-xs text-black space-y-1 list-decimal list-inside font-bold">
+                      <li>前往 <a href={`https://bscscan.com/address/${pool.address}#events`} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:text-blue-800">BscScan (Pool Events)</a></li>
+                      <li>查找 <code>Mint</code> 或 <code>IncreaseLiquidity</code> 事件</li>
+                      <li>复制事件详情中的 <code>TokenId</code> (数字)</li>
+                      <li>在上方搜索框输入该数字，查看其真实做市区间！</li>
+                    </ol>
                   </div>
                 </div>
 
