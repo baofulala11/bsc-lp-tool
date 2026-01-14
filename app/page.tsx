@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { fetchTokenPools, fetchTopPositions, PoolData, LPPosition } from '@/lib/pool-api';
+import { PoolData, LPPosition } from '@/lib/pool-api';
 import { Loader2, Search, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
 
 export default function LiquidityAnalyzer() {
@@ -17,25 +17,22 @@ export default function LiquidityAnalyzer() {
     setPools([]);
 
     try {
-      const poolList = await fetchTokenPools(input.trim());
-      
-      if (poolList.length === 0) {
-        setError('未找到该代币的 V3 流动性池。请确认合约地址正确且存在 V3 流动性。');
-        setLoading(false);
-        return;
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tokenAddress: input.trim() }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || '查询失败');
       }
 
-      const results = await Promise.all(
-        poolList.map(async (pool) => {
-          const positions = await fetchTopPositions(pool);
-          return { pool, positions };
-        })
-      );
-
-      setPools(results.filter(r => r.positions.length > 0));
-    } catch (err) {
+      setPools(data);
+    } catch (err: any) {
       console.error(err);
-      setError('查询出错，请稍后重试。');
+      setError(err.message || '查询出错，请稍后重试。');
     } finally {
       setLoading(false);
     }
