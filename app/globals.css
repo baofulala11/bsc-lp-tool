@@ -4,37 +4,26 @@
 
 @layer base {
   :root {
-    /* 强制深色模式变量 */
-    --background: 224 71% 4%;
-    --foreground: 213 31% 91%;
-    
-    --muted: 223 47% 11%;
-    --muted-foreground: 215.4 16.3% 56.9%;
-    
-    --popover: 224 71% 4%;
-    --popover-foreground: 215 20.2% 65.1%;
-    
-    --card: 224 71% 4%;
-    --card-foreground: 213 31% 91%;
-    
-    --border: 216 34% 17%;
-    --input: 216 34% 17%;
-    
-    --primary: 199 89% 48%; /* 科技蓝 */
-    --primary-foreground: 0 0% 100%;
-    
-    --secondary: 222.2 47.4% 11.2%;
-    --secondary-foreground: 210 40% 98%;
-    
-    --accent: 216 34% 17%;
-    --accent-foreground: 210 40% 98%;
-    
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-    
-    --ring: 199 89% 48%;
-    
-    --radius: 0.75rem;
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 5%;
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 45 93% 47%; /* Yellow-400 */
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 45 93% 47%;
+    --radius: 0.5rem;
   }
 }
  
@@ -43,30 +32,34 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-black text-white antialiased;
+    /* 漫画风格背景 + 遮罩层 */
     background-image: 
-      linear-gradient(to bottom, rgba(10, 10, 20, 0.95), rgba(5, 5, 10, 1)),
-      linear-gradient(rgba(56, 189, 248, 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(56, 189, 248, 0.03) 1px, transparent 1px);
-    background-size: 100% 100%, 40px 40px, 40px 40px;
+      linear-gradient(to bottom, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.95)),
+      url('https://c4.wallpaperflare.com/wallpaper/478/426/971/bitcoin-satoshi-nakamoto-cryptocurrency-artwork-wallpaper-preview.jpg'); 
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
     min-height: 100vh;
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-slate-900/40 backdrop-blur-xl border border-white/5 shadow-2xl transition-all duration-300;
+    /* 磨砂质感 */
+    @apply backdrop-blur-md bg-black/40 border border-white/10 shadow-2xl transition-all duration-300;
   }
   
-  .glass-card:hover {
-    @apply border-primary/30 shadow-[0_0_20px_rgba(14,165,233,0.15)] bg-slate-900/60;
-  }
-
   .tech-input {
-    @apply bg-slate-950/50 border-slate-800 focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-slate-100 placeholder:text-slate-600;
+    @apply bg-black/60 border-white/20 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all text-white placeholder:text-gray-500;
   }
 
   .glow-text {
-    text-shadow: 0 0 15px rgba(14, 165, 233, 0.5);
+    text-shadow: 0 0 25px rgba(250, 204, 21, 0.6);
+  }
+  
+  .animate-bounce-slow {
+    animation: bounce 3s infinite;
   }
 }
