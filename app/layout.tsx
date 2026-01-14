@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "BSC V3 Liquidity Analyzer",
-  description: "Analyze V3 Liquidity Pools on BSC",
+  title: "SATOSHI LP TOOL",
+  description: "BSC V3 Liquidity & Whale Position Analyzer",
+  icons: {
+    icon: "https://img.icons8.com/color/96/satoshi-nakamoto.png",
+  },
 };
 
 export default function RootLayout({
@@ -12,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="zh-CN">
       <body className="antialiased">{children}</body>
     </html>
   );

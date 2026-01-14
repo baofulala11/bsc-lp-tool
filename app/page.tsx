@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Search, AlertCircle, ExternalLink, Activity, ShieldCheck, Zap, TrendingUp } from 'lucide-react';
+import { Loader2, Search, AlertCircle, ExternalLink, Activity, ShieldCheck, Zap, TrendingUp, Calculator, Wallet } from 'lucide-react';
 
 interface PoolData {
   address: string;
@@ -17,22 +17,23 @@ interface PoolData {
 }
 
 // 格式化价格，增加容错
-const formatPrice = (price: number | undefined | null) => {
-  if (!price || isNaN(price) || price === 0) return '0.00';
-  if (price < 0.000001) return price.toFixed(10).replace(/\.?0+$/, '');
-  if (price < 0.01) return price.toFixed(8).replace(/\.?0+$/, '');
-  return price.toFixed(4);
+const formatPrice = (price: number | string | undefined | null) => {
+  const p = Number(price);
+  if (!p || isNaN(p) || p === 0) return '0.00';
+  if (p < 0.000001) return p.toFixed(10).replace(/\.?0+$/, '');
+  if (p < 0.01) return p.toFixed(8).replace(/\.?0+$/, '');
+  return p.toFixed(4);
 };
 
-// 计算做市范围，增加容错
+// 计算做市范围
 const calculateRanges = (price: number | undefined | null) => {
   const p = price || 0;
   if (p === 0) return [];
   
   return [
-    { label: '激进策略 (Aggressive)', desc: '高收益 / 高风险', range: '±10%', min: p * 0.90, max: p * 1.10, color: 'text-red-600', border: 'border-red-600', bg: 'bg-white/80', icon: Zap },
-    { label: '稳健策略 (Balanced)', desc: '平衡收益与风险', range: '±20%', min: p * 0.80, max: p * 1.20, color: 'text-blue-600', border: 'border-blue-600', bg: 'bg-white/80', icon: Activity },
-    { label: '保守策略 (Conservative)', desc: '低风险 / 长期持有', range: '±50%', min: p * 0.50, max: p * 1.50, color: 'text-green-600', border: 'border-green-600', bg: 'bg-white/80', icon: ShieldCheck },
+    { label: '激进策略 (Narrow)', desc: '高收益 / 高风险', range: '±10%', min: p * 0.90, max: p * 1.10, color: 'text-red-600', border: 'border-red-600', bg: 'bg-white/80', icon: Zap },
+    { label: '稳健策略 (Medium)', desc: '平衡收益与风险', range: '±20%', min: p * 0.80, max: p * 1.20, color: 'text-blue-600', border: 'border-blue-600', bg: 'bg-white/80', icon: Activity },
+    { label: '保守策略 (Wide)', desc: '低风险 / 长期持有', range: '±50%', min: p * 0.50, max: p * 1.50, color: 'text-green-600', border: 'border-green-600', bg: 'bg-white/80', icon: ShieldCheck },
   ];
 };
 
@@ -42,15 +43,30 @@ export default function LiquidityAnalyzer() {
   const [pools, setPools] = useState<PoolData[]>([]);
   const [error, setError] = useState('');
   const [searched, setSearched] = useState(false);
+  
+  // LP ID 查询状态
+  const [lpId, setLpId] = useState('');
+  const [lpResult, setLpResult] = useState<any>(null);
+  const [lpLoading, setLpLoading] = useState(false);
+  const [lpError, setLpError] = useState('');
 
   const handleAnalyze = async () => {
     if (!input.trim()) return;
     setLoading(true);
     setError('');
     setPools([]);
+    setLpResult(null); // 清除 LP 结果
     setSearched(true);
 
     try {
+      // 检查输入是否为纯数字 (Token ID)
+      if (/^\d+$/.test(input.trim())) {
+        await handleLpSearch(input.trim());
+        setLoading(false);
+        return;
+      }
+
+      // 否则按合约地址查询
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -73,6 +89,30 @@ export default function LiquidityAnalyzer() {
       setError(err.message || '查询出错，请稍后重试。');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLpSearch = async (id: string) => {
+    setLpLoading(true);
+    setLpError('');
+    setLpResult(null);
+    setPools([]); // 清除池子结果
+
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'position', tokenId: id }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '查询失败');
+      setLpResult(data);
+    } catch (err: any) {
+      setLpError(err.message || '查询 LP 失败');
+      setError(err.message); // 显示在主错误区
+    } finally {
+      setLpLoading(false);
     }
   };
 
@@ -101,7 +141,7 @@ export default function LiquidityAnalyzer() {
             <Search className="absolute left-4 top-4 h-6 w-6 text-black transition-colors" />
             <input
               type="text"
-              placeholder="输入代币合约地址 (例如 0x...)"
+              placeholder="输入代币合约地址 (例如 0x...) 或 LP Token ID (数字)"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
@@ -125,9 +165,74 @@ export default function LiquidityAnalyzer() {
         )}
       </div>
 
-      {/* 结果列表 */}
+      {/* LP ID 查询结果 */}
+      {lpResult && (
+        <div className="glass-card p-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto border-4 border-black bg-yellow-50">
+          <div className="flex items-center gap-4 mb-6 border-b-2 border-black pb-4">
+            <div className="p-3 bg-black text-white rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
+              <Wallet className="w-8 h-8" />
+            </div>
+            <div>
+              <h2 className="text-3xl font-black text-black">LP 头寸详情 #{lpResult.tokenId}</h2>
+              <p className="text-gray-600 font-bold">{lpResult.token0.symbol} / {lpResult.token1.symbol} (Fee: {lpResult.feeTier / 10000}%)</p>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="space-y-6">
+              <div className="bg-white border-2 border-black p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
+                <h3 className="text-sm font-black uppercase text-gray-500 mb-2">价格区间 (Price Range)</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-end">
+                    <span className="font-bold text-gray-600">Min Price:</span>
+                    <span className="font-mono text-xl font-black text-black">{formatPrice(lpResult.minPrice)}</span>
+                  </div>
+                  <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-500 w-full animate-pulse" />
+                  </div>
+                  <div className="flex justify-between items-end">
+                    <span className="font-bold text-gray-600">Max Price:</span>
+                    <span className="font-mono text-xl font-black text-black">{formatPrice(lpResult.maxPrice)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white border-2 border-black p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
+                <h3 className="text-sm font-black uppercase text-gray-500 mb-2">未领取收益 (Unclaimed Fees)</h3>
+                <div className="space-y-1 font-mono font-bold">
+                  <div className="flex justify-between">
+                    <span>{lpResult.token0.symbol}:</span>
+                    <span className="text-green-600">+{parseFloat(lpResult.fees0).toFixed(6)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>{lpResult.token1.symbol}:</span>
+                    <span className="text-green-600">+{parseFloat(lpResult.fees1).toFixed(6)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-black/5 p-6 rounded-xl border-2 border-black/10 flex flex-col justify-center">
+              <h3 className="font-black text-lg mb-4 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5" /> 头寸状态
+              </h3>
+              <div className="space-y-4 text-sm font-medium">
+                <p>Tick Lower: <span className="font-mono bg-white px-2 border border-black">{lpResult.tickLower}</span></p>
+                <p>Tick Upper: <span className="font-mono bg-white px-2 border border-black">{lpResult.tickUpper}</span></p>
+                <p>Liquidity: <span className="font-mono text-xs break-all text-gray-600">{lpResult.liquidity}</span></p>
+                
+                <div className="mt-4 p-4 bg-yellow-100 border-2 border-yellow-400 text-yellow-800 text-xs">
+                  💡 此数据直接读取自 BSC 链上合约 (PancakeSwap V3 NFT Manager)。如果价格显示异常，可能是因为代币顺序反转，请手动倒数 (1/Price)。
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 池子列表结果 (原有逻辑) */}
       <div className="grid gap-8 pb-20">
-        {searched && !loading && pools.length === 0 && !error && (
+        {searched && !loading && pools.length === 0 && !lpResult && !error && !lpError && (
             <div className="text-center text-black bg-white border-2 border-black p-8 font-bold text-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
                 暂无数据，请尝试其他合约地址
             </div>
@@ -206,7 +311,7 @@ export default function LiquidityAnalyzer() {
                 <div className="flex-1 space-y-4">
                   <div className="flex items-center gap-2 mb-2">
                     <TrendingUp className="w-6 h-6 text-black" />
-                    <h4 className="font-black text-black text-xl uppercase">智能 LP 推荐范围</h4>
+                    <h4 className="font-black text-black text-xl uppercase">做市区间参考 (LP Range)</h4>
                   </div>
 
                   {ranges.length > 0 ? (
@@ -237,12 +342,32 @@ export default function LiquidityAnalyzer() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-gray-500 italic bg-gray-100 p-4 border-2 border-gray-300">无法获取价格，暂无策略推荐</div>
+                    <div className="text-gray-500 italic bg-gray-100 p-4 border-2 border-gray-300">无法获取价格，暂无参考数据</div>
                   )}
                   
-                  <div className="text-xs text-black mt-4 bg-white p-4 border-2 border-black font-medium leading-relaxed shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                    <span className="font-black text-black text-sm block mb-1">💡 聪哥说 (Satoshi Says):</span>
-                    "做市范围越窄，手续费收益越高，但越容易超出区间（无常损失风险大）。请根据你对币价波动的判断来选择策略！"
+                  {/* 替换"聪哥说" 为技术说明 */}
+                  <div className="mt-4 bg-white p-4 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    <div className="flex items-center gap-2 mb-2 border-b-2 border-black pb-1">
+                      <Calculator className="w-4 h-4" />
+                      <h5 className="font-black text-black text-sm uppercase">区间计算公式 (Calculation)</h5>
+                    </div>
+                    <ul className="text-xs text-black space-y-1 font-mono">
+                      <li className="flex justify-between items-center">
+                        <span className="text-gray-600">当前 Tick (预估):</span>
+                        <span className="font-bold bg-gray-100 px-1">{pool.priceUsd ? Math.floor(Math.log(pool.priceUsd) / Math.log(1.0001)) : 'N/A'}</span>
+                      </li>
+                      <li className="flex justify-between">
+                        <span className="text-gray-600">Min Price:</span>
+                        <span>1.0001 ^ (Tick - Range)</span>
+                      </li>
+                      <li className="flex justify-between">
+                        <span className="text-gray-600">Max Price:</span>
+                        <span>1.0001 ^ (Tick + Range)</span>
+                      </li>
+                    </ul>
+                    <div className="mt-2 text-[10px] text-gray-500 italic pt-1">
+                      * 数据基于当前价格模拟。要查询具体头寸，请在上方输入 Token ID。
+                    </div>
                   </div>
                 </div>
 
