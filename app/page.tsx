@@ -30,9 +30,9 @@ const calculateRanges = (price: number | undefined | null) => {
   if (p === 0) return [];
   
   return [
-    { label: '激进 (Aggressive)', desc: '高收益 / 高风险', range: '±10%', min: p * 0.90, max: p * 1.10, color: 'text-red-600', border: 'border-red-600', bg: 'bg-white/80', icon: Zap },
-    { label: '稳健 (Balanced)', desc: '平衡策略', range: '±20%', min: p * 0.80, max: p * 1.20, color: 'text-blue-600', border: 'border-blue-600', bg: 'bg-white/80', icon: Activity },
-    { label: '保守 (Conservative)', desc: '低风险 / 长期持有', range: '±50%', min: p * 0.50, max: p * 1.50, color: 'text-green-600', border: 'border-green-600', bg: 'bg-white/80', icon: ShieldCheck },
+    { label: '激进策略 (Aggressive)', desc: '高收益 / 高风险', range: '±10%', min: p * 0.90, max: p * 1.10, color: 'text-red-600', border: 'border-red-600', bg: 'bg-white/80', icon: Zap },
+    { label: '稳健策略 (Balanced)', desc: '平衡收益与风险', range: '±20%', min: p * 0.80, max: p * 1.20, color: 'text-blue-600', border: 'border-blue-600', bg: 'bg-white/80', icon: Activity },
+    { label: '保守策略 (Conservative)', desc: '低风险 / 长期持有', range: '±50%', min: p * 0.50, max: p * 1.50, color: 'text-green-600', border: 'border-green-600', bg: 'bg-white/80', icon: ShieldCheck },
   ];
 };
 
@@ -113,7 +113,7 @@ export default function LiquidityAnalyzer() {
             disabled={loading || !input}
             className="px-8 py-3 comic-btn rounded-none text-xl flex items-center gap-2 disabled:opacity-50"
           >
-            {loading ? <Loader2 className="animate-spin w-6 h-6" /> : "SCAN NOW!"}
+            {loading ? <Loader2 className="animate-spin w-6 h-6" /> : "立即扫描!"}
           </button>
         </div>
         
@@ -167,7 +167,7 @@ export default function LiquidityAnalyzer() {
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="p-2 border-2 border-black hover:bg-black hover:text-white transition-colors text-black"
-                      title="在 DexScreener 查看"
+                      title="在 DexScreener 查看详情"
                     >
                       <ExternalLink className="w-6 h-6" />
                     </a>
@@ -181,13 +181,13 @@ export default function LiquidityAnalyzer() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-white border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
-                      <div className="text-xs text-gray-500 mb-1 uppercase tracking-wider font-bold">24h Volume</div>
+                      <div className="text-xs text-gray-500 mb-1 uppercase tracking-wider font-bold">24H 交易量</div>
                       <div className="font-mono font-bold text-lg text-black">
                         ${pool.volume24h.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                       </div>
                     </div>
                     <div className="bg-white border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
-                      <div className="text-xs text-gray-500 mb-1 uppercase tracking-wider font-bold">Liquidity</div>
+                      <div className="text-xs text-gray-500 mb-1 uppercase tracking-wider font-bold">总流动性 (TVL)</div>
                       <div className="font-mono font-bold text-lg text-green-600">
                         ${pool.liquidityUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                       </div>
@@ -195,7 +195,7 @@ export default function LiquidityAnalyzer() {
                   </div>
 
                   <div className="pt-2">
-                    <div className="text-xs text-black mb-2 font-black uppercase">Current Price (USD)</div>
+                    <div className="text-xs text-black mb-2 font-black uppercase">当前价格 (USD)</div>
                     <div className="font-mono text-3xl md:text-4xl font-black text-black tracking-tight break-all bg-yellow-100 border-2 border-black p-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                       ${formatPrice(pool.priceUsd)}
                     </div>
@@ -206,7 +206,7 @@ export default function LiquidityAnalyzer() {
                 <div className="flex-1 space-y-4">
                   <div className="flex items-center gap-2 mb-2">
                     <TrendingUp className="w-6 h-6 text-black" />
-                    <h4 className="font-black text-black text-xl uppercase">Smart LP Strategy</h4>
+                    <h4 className="font-black text-black text-xl uppercase">智能 LP 推荐范围</h4>
                   </div>
 
                   {ranges.length > 0 ? (
@@ -215,16 +215,16 @@ export default function LiquidityAnalyzer() {
                         <div key={i} className={`relative group p-4 border-2 ${range.border} ${range.bg} transition-all hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]`}>
                           <div className="flex items-center gap-2 mb-3">
                             <range.icon className={`w-5 h-5 ${range.color}`} />
-                            <span className={`font-black text-sm ${range.color} uppercase`}>{range.label}</span>
+                            <span className={`font-black text-sm ${range.color} uppercase`}>{range.label.split(' ')[0]}</span>
                           </div>
                           
                           <div className="space-y-3">
                             <div>
-                              <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5 font-bold">Min Price</div>
+                              <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5 font-bold">最低价 (Min)</div>
                               <div className="font-mono text-sm text-black font-bold bg-white/50 px-1">{formatPrice(range.min)}</div>
                             </div>
                             <div>
-                              <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5 font-bold">Max Price</div>
+                              <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5 font-bold">最高价 (Max)</div>
                               <div className="font-mono text-sm text-black font-bold bg-white/50 px-1">{formatPrice(range.max)}</div>
                             </div>
                           </div>
@@ -237,12 +237,12 @@ export default function LiquidityAnalyzer() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-gray-500 italic bg-gray-100 p-4 border-2 border-gray-300">Price data unavailable for strategy calculation</div>
+                    <div className="text-gray-500 italic bg-gray-100 p-4 border-2 border-gray-300">无法获取价格，暂无策略推荐</div>
                   )}
                   
                   <div className="text-xs text-black mt-4 bg-white p-4 border-2 border-black font-medium leading-relaxed shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                    <span className="font-black text-black text-sm block mb-1">💡 SATOSHI SAYS:</span>
-                    "Narrow ranges multiply fees but risk divergence loss. Choose your strategy based on volatility expectations."
+                    <span className="font-black text-black text-sm block mb-1">💡 聪哥说 (Satoshi Says):</span>
+                    "做市范围越窄，手续费收益越高，但越容易超出区间（无常损失风险大）。请根据你对币价波动的判断来选择策略！"
                   </div>
                 </div>
 
