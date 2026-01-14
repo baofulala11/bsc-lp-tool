@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Search, AlertCircle, ExternalLink, ArrowRight } from 'lucide-react';
+import { Loader2, Search, AlertCircle, ExternalLink, Activity, TrendingUp, ShieldCheck, Zap } from 'lucide-react';
 
 interface PoolData {
   address: string;
@@ -15,6 +15,23 @@ interface PoolData {
   baseToken: { symbol: string; address: string };
   quoteToken: { symbol: string; address: string };
 }
+
+// 格式化价格，不使用科学计数法
+const formatPrice = (price: number) => {
+  if (price === 0) return '0';
+  if (price < 0.000001) return price.toFixed(10).replace(/\.?0+$/, '');
+  if (price < 0.01) return price.toFixed(8).replace(/\.?0+$/, '');
+  return price.toFixed(4);
+};
+
+// 计算做市范围
+const calculateRanges = (price: number) => {
+  return [
+    { label: '激进 (Aggressive)', desc: '高收益 / 高风险', range: '±10%', min: price * 0.90, max: price * 1.10, color: 'text-rose-400', border: 'border-rose-500/30', bg: 'bg-rose-500/10', icon: Zap },
+    { label: '稳健 (Balanced)', desc: '平衡策略', range: '±20%', min: price * 0.80, max: price * 1.20, color: 'text-sky-400', border: 'border-sky-500/30', bg: 'bg-sky-500/10', icon: Activity },
+    { label: '保守 (Conservative)', desc: '低风险 / 长期持有', range: '±50%', min: price * 0.50, max: price * 1.50, color: 'text-emerald-400', border: 'border-emerald-500/30', bg: 'bg-emerald-500/10', icon: ShieldCheck },
+  ];
+};
 
 export default function LiquidityAnalyzer() {
   const [input, setInput] = useState('');
@@ -51,111 +68,167 @@ export default function LiquidityAnalyzer() {
   };
 
   return (
-    <div className="container mx-auto max-w-5xl p-6 space-y-8 min-h-screen">
-      <div className="flex flex-col gap-6 text-center py-10">
-        <h1 className="text-4xl font-bold tracking-tight">DeFi 流动性透视镜</h1>
-        <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-          输入代币合约地址，一键透视全网流动性分布。实时追踪价格、TVL 与交易热度。
+    <div className="container mx-auto max-w-6xl p-6 space-y-12 min-h-screen">
+      {/* 头部区域 */}
+      <div className="flex flex-col gap-8 text-center py-16 relative">
+        {/* 背景光效 */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-primary/20 blur-[120px] rounded-full pointer-events-none" />
+        
+        <h1 className="text-5xl md:text-6xl font-bold tracking-tight glow-text text-white relative z-10">
+          DeFi 流动性透视镜
+        </h1>
+        <p className="text-slate-400 text-lg max-w-2xl mx-auto relative z-10">
+          输入代币合约地址，一键透视全网流动性分布。
+          <br />实时追踪价格、TVL 与智能做市范围推荐。
         </p>
         
-        <div className="flex gap-2 max-w-2xl w-full mx-auto relative">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
+        <div className="flex gap-3 max-w-2xl w-full mx-auto relative z-10 mt-4">
+          <div className="relative flex-1 group">
+            <Search className="absolute left-4 top-4 h-5 w-5 text-slate-500 group-focus-within:text-primary transition-colors" />
             <input
               type="text"
               placeholder="输入代币合约地址 (例如 0x...)"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
-              className="w-full pl-10 pr-4 py-3 rounded-xl border bg-background shadow-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+              className="w-full pl-12 pr-4 py-4 rounded-xl tech-input shadow-lg text-lg"
             />
           </div>
           <button
             onClick={handleAnalyze}
             disabled={loading || !input}
-            className="px-8 py-3 bg-primary text-primary-foreground rounded-xl font-medium flex items-center gap-2 hover:bg-primary/90 disabled:opacity-50 disabled:hover:bg-primary transition-all shadow-md active:scale-95"
+            className="px-8 py-3 bg-primary text-white rounded-xl font-bold text-lg flex items-center gap-2 hover:bg-primary/90 disabled:opacity-50 hover:shadow-[0_0_20px_rgba(14,165,233,0.4)] transition-all active:scale-95"
           >
-            {loading ? <Loader2 className="animate-spin" /> : "透视分析"}
+            {loading ? <Loader2 className="animate-spin" /> : "开始扫描"}
           </button>
         </div>
         
         {error && (
-          <div className="mx-auto p-4 rounded-lg bg-destructive/10 text-destructive flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+          <div className="mx-auto p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
             <AlertCircle className="w-4 h-4" />
             {error}
           </div>
         )}
       </div>
 
-      <div className="space-y-4">
-        {pools.map((pool, idx) => (
-          <div 
-            key={pool.address} 
-            className="group relative border rounded-xl bg-card p-6 shadow-sm hover:shadow-md transition-all hover:border-primary/20"
-          >
-            <div className="flex flex-col md:flex-row justify-between gap-6 items-start md:items-center">
-              
-              {/* 左侧：核心信息 */}
-              <div className="space-y-3 flex-1">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 text-primary font-bold text-xs">
-                    #{idx + 1}
+      {/* 结果列表 */}
+      <div className="grid gap-8">
+        {pools.map((pool, idx) => {
+          const ranges = calculateRanges(pool.priceUsd);
+          
+          return (
+            <div 
+              key={pool.address} 
+              className="glass-card rounded-2xl p-1 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500"
+              style={{ animationDelay: `${idx * 100}ms` }}
+            >
+              <div className="bg-slate-950/40 p-6 md:p-8 rounded-xl backdrop-blur-sm">
+                <div className="flex flex-col lg:flex-row gap-8">
+                  
+                  {/* 左侧：核心信息 */}
+                  <div className="space-y-6 lg:w-[35%] border-b lg:border-b-0 lg:border-r border-slate-800 pb-6 lg:pb-0 lg:pr-8">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/20 text-primary font-bold text-sm border border-primary/20">
+                          #{idx + 1}
+                        </div>
+                        <h3 className="text-2xl font-bold flex items-center gap-2 text-white">
+                          {pool.platform.charAt(0).toUpperCase() + pool.platform.slice(1)}
+                        </h3>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide ${
+                          pool.version === 'V3' 
+                            ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' 
+                            : 'bg-slate-700/50 text-slate-400 border border-slate-600'
+                        }`}>
+                          {pool.version}
+                        </span>
+                      </div>
+                      <a 
+                        href={pool.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="p-2 rounded-lg hover:bg-white/10 transition-colors text-slate-400 hover:text-white"
+                        title="在 DexScreener 查看"
+                      >
+                        <ExternalLink className="w-5 h-5" />
+                      </a>
+                    </div>
+                    
+                    <div className="font-mono text-lg text-slate-300 flex items-center gap-2">
+                      <span className="text-primary">{pool.baseToken.symbol}</span>
+                      <span className="text-slate-600">/</span>
+                      <span className="text-white">{pool.quoteToken.symbol}</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                        <div className="text-xs text-slate-500 mb-1 uppercase tracking-wider">24h Volume</div>
+                        <div className="font-mono font-medium text-lg text-slate-200">
+                          ${pool.volume24h.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        </div>
+                      </div>
+                      <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                        <div className="text-xs text-slate-500 mb-1 uppercase tracking-wider">Total Liquidity</div>
+                        <div className="font-mono font-medium text-lg text-emerald-400">
+                          ${pool.liquidityUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <div className="text-xs text-slate-500 mb-2">当前价格 (USD)</div>
+                      <div className="font-mono text-3xl font-bold text-white tracking-tight glow-text break-all">
+                        ${formatPrice(pool.priceUsd)}
+                      </div>
+                    </div>
                   </div>
-                  <h3 className="text-xl font-bold flex items-center gap-2">
-                    {pool.platform.charAt(0).toUpperCase() + pool.platform.slice(1)}
-                    <span className="text-muted-foreground font-normal text-base">/</span>
-                    <span className="font-mono">{pool.pair}</span>
-                  </h3>
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                    pool.version === 'V3' 
-                      ? 'bg-blue-50 text-blue-700 border border-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800' 
-                      : 'bg-gray-100 text-gray-600 border border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700'
-                  }`}>
-                    {pool.version}
-                  </span>
-                </div>
-                
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="font-mono bg-muted/50 px-1.5 py-0.5 rounded select-all hover:bg-muted transition-colors cursor-pointer" title="点击复制">
-                    {pool.address.slice(0, 6)}...{pool.address.slice(-4)}
-                  </span>
-                  <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-                  <a 
-                    href={pool.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 hover:text-primary transition-colors"
-                  >
-                    DexScreener <ExternalLink className="w-3 h-3" />
-                  </a>
+
+                  {/* 右侧：智能 LP 策略 */}
+                  <div className="flex-1 space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <TrendingUp className="w-5 h-5 text-primary" />
+                      <h4 className="font-bold text-white text-lg">智能 LP 价格范围推荐</h4>
+                      <span className="text-xs text-slate-500 ml-auto">基于当前价格计算</span>
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-4">
+                      {ranges.map((range, i) => (
+                        <div key={i} className={`relative group p-4 rounded-xl border ${range.border} ${range.bg} transition-all hover:scale-[1.02]`}>
+                          <div className="flex items-center gap-2 mb-3">
+                            <range.icon className={`w-4 h-4 ${range.color}`} />
+                            <span className={`font-bold text-sm ${range.color}`}>{range.label}</span>
+                          </div>
+                          
+                          <div className="space-y-3">
+                            <div>
+                              <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Min Price</div>
+                              <div className="font-mono text-sm text-white font-medium">{formatPrice(range.min)}</div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Max Price</div>
+                              <div className="font-mono text-sm text-white font-medium">{formatPrice(range.max)}</div>
+                            </div>
+                          </div>
+                          
+                          <div className="mt-3 pt-3 border-t border-white/5 flex justify-between items-center text-xs">
+                            <span className="text-slate-400">{range.desc}</span>
+                            <span className="font-mono bg-black/20 px-1.5 py-0.5 rounded">{range.range}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="text-xs text-slate-500 mt-4 bg-slate-900/50 p-3 rounded-lg border border-white/5">
+                      <span className="font-bold text-slate-400">💡 提示：</span>
+                      价格范围越窄，赚取的费率倍数越高，但更容易超出区间停止收益（无常损失风险更大）。建议根据您对币价波动的预期选择策略。
+                    </div>
+                  </div>
+
                 </div>
               </div>
-
-              {/* 右侧：数据卡片 */}
-              <div className="grid grid-cols-3 gap-4 md:gap-12 w-full md:w-auto">
-                <div className="text-right">
-                  <div className="text-xs text-muted-foreground mb-1 font-medium">当前价格</div>
-                  <div className="font-mono font-bold text-lg tabular-nums">
-                    ${pool.priceUsd < 0.01 ? pool.priceUsd.toExponential(4) : pool.priceUsd.toFixed(4)}
-                  </div>
-                </div>
-                <div className="text-right border-l pl-4 md:pl-12 border-border/50">
-                  <div className="text-xs text-muted-foreground mb-1 font-medium">24h 交易量</div>
-                  <div className="font-mono font-medium text-lg tabular-nums">
-                    ${pool.volume24h.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                  </div>
-                </div>
-                <div className="text-right border-l pl-4 md:pl-12 border-border/50">
-                  <div className="text-xs text-muted-foreground mb-1 font-medium">总流动性 (TVL)</div>
-                  <div className="font-mono font-bold text-lg tabular-nums text-green-600 dark:text-green-400">
-                    ${pool.liquidityUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                  </div>
-                </div>
-              </div>
-
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
